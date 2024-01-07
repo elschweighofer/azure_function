@@ -71,6 +71,39 @@ def detect_language(req: func.HttpRequest) -> func.HttpResponse:
         )
 
 
+@app.route(route="translate", auth_level=func.AuthLevel.ANONYMOUS)
+def translate(req: func.HttpRequest) -> func.HttpResponse:
+    sentence = req.params.get("sentence")
+    if not sentence:
+        try:
+            req_body = req.get_json()
+        except ValueError:
+            pass
+        else:
+            sentence = req_body.get("sentence")
+
+    text_analytics_client = TextAnalyticsClient(
+        endpoint=endpoint, credential=AzureKeyCredential(key)
+    )
+    sentiment = text_analytics_client.analyze_sentiment(
+        [
+            sentence,
+        ]
+    )
+    result = sentiment[0]
+
+    if result.sentiment:
+        return func.HttpResponse(
+            f"detected sentiment of sentence {sentence}: {result.sentiment}",
+            status_code=200,
+        )
+    else:
+        return func.HttpResponse(
+            "The HTTP Trigger Function is running but received either no or no useful input. Pass a query string like /?sentence=i+like+clouds",
+            status_code=500,
+        )
+    return sentence
+
 @app.route(route="detect_sentiment", auth_level=func.AuthLevel.ANONYMOUS)
 def detect_sentiment(req: func.HttpRequest) -> func.HttpResponse:
     sentence = req.params.get("sentence")
